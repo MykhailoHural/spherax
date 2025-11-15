@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "pnpm test:api && pnpm test:components",
+    "test": "playwright test src/tests/api src/tests/components",
     "test:api": "playwright test src/tests/api",
     "test:components": "playwright test src/tests/components",
     "test:e2e": "playwright test src/tests/e2e",
