@@ -1,10 +1,10 @@
-name: Playwright Tests
+name: Playwright Tests & Report
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, develop ]
   workflow_dispatch:
     inputs:
       test_suite:
@@ -18,54 +18,64 @@ on:
           - components
           - e2e
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
-
+          node-version: '18'
       - name: Install dependencies
         run: npm install -g pnpm && pnpm install
-
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
 
-      - name: Run Playwright tests
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
-        run: pnpm test
-
-      - name: Run selected tests manually
-        if: github.event_name == 'workflow_dispatch'
+      - name: Run tests
         run: |
-          SELECTED="${{ github.event.inputs.test_suite }}"
-
-          if [[ "$SELECTED" == "all" ]]; then
-            echo "▶ Running ALL tests"
-            pnpm exec playwright test
-            exit $?
-          fi
-
-          TEST_DIR="src/tests/$SELECTED"
-
-          if [[ -d "$TEST_DIR" ]]; then
-            echo "▶ Running test suite: $SELECTED"
-            pnpm exec playwright test "$TEST_DIR"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ github.event.inputs.test_suite }}" == "all" ]]; then
+              pnpm exec playwright test
+            else
+              pnpm exec playwright test src/tests/${{ github.event.inputs.test_suite }}
+            fi
           else
-            echo "ERROR: Test suite \"$SELECTED\" not found."
-            echo "Checked path: $TEST_DIR"
-            exit 1
+            pnpm test # Запускає api та components на push/PR
           fi
 
-      - name: Upload Report
-        uses: actions/upload-artifact@v4
+      - name: Upload report for deployment
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: playwright-report
           path: playwright-report/
-          retention-days: 30
+          retention-days: 7
+
+  deploy-report:
+    if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download report from previous job
+        uses: actions/download-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact for GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: playwright-report
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
