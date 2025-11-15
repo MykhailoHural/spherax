@@ -17,7 +17,7 @@ test.describe('IAM Service API: Health Check', () => {
       });
     });
 
-    await test.step('serify the response status and headers', async () => {
+    await test.step('verify the response status and headers', async () => {
       expect(response.status()).toBe(200);
       expect(response.headers()['content-type']).toContain('application/json');
     });
@@ -36,6 +36,28 @@ test.describe('IAM Service API: Health Check', () => {
       expect(healthData).toHaveProperty('version', '1');
       expect(healthData).toHaveProperty('uptime');
       expect(typeof healthData.uptime).toBe('number');
+    });
+  });
+
+  test('GET /iam/health should return an error if x-api-version header is missing', async ({ request }) => {
+    let response: APIResponse;
+
+    await test.step('send GET request without the required header', async () => {
+      response = await request.get(`${API_URL}/iam/health`);
+    });
+
+    await test.step('verify the error response status', async () => {
+      expect(response.ok()).toBeFalsy();
+
+      expect(response.status()).toBe(400);
+    });
+
+    await test.step('verify the error response body', async () => {
+      const body = await response.json();
+
+      expect(body.success).toBe(false);
+      expect(body.error).toBeDefined();
+      expect(body.error).toBe('Missing required headers.');
     });
   });
 });
