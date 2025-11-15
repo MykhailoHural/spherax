@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "playwright test",
+    "test": "pnpm test:api && pnpm test:components",
+    "test:api": "playwright test src/tests/api",
+    "test:components": "playwright test src/tests/components",
+    "test:e2e": "playwright test src/tests/e2e",
     "test:ui": "playwright test --ui",
     "lint": "eslint ."
   },
