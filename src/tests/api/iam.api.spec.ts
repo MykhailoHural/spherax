@@ -1,4 +1,3 @@
-// src/tests/iam.api.spec.ts
 import { test, expect, type APIResponse } from '@playwright/test';
 
 const API_URL = process.env.SPHERAX_API_URL;
